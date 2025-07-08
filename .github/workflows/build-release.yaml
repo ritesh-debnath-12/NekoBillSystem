@@ -1,0 +1,64 @@
+name: Build and Release NekoBillSystem
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: 21
+
+      - name: Create distribution directory
+        run: mkdir dist
+        shell: pwsh
+
+      - name: Compile PizzaOrder_Input.java
+        run: javac src/PizzaOrder_Input.java
+        shell: pwsh
+
+      - name: Move class file to dist
+        run: move src/PizzaOrder_Input.class dist/
+        shell: pwsh
+
+      - name: Package .class file into JAR
+        run: jar --create --file=dist/PizzaOrder_Input.jar --main-class=PizzaOrder_Input -C dist PizzaOrder_Input.class
+        shell: pwsh
+
+      - name: Compile PizzaOrder.java
+        run: javac src/PizzaOrder.java
+        shell: pwsh
+
+      - name: Move class file to dist
+        run: move src/PizzaOrder.class dist/
+        shell: pwsh
+
+      - name: Package .class file into JAR
+        run: jar --create --file=dist/PizzaOrder.jar --main-class=PizzaOrder -C dist PizzaOrder.class
+        shell: pwsh
+
+      - name: Create ZIP archive with JAR and README
+        run: |
+          copy README.md dist\
+          "C:\Program Files\7-Zip\7z.exe" a "dist/NekoBillSystem-${{ github.ref_name }}.7z" "dist/*"
+        shell: cmd
+
+      - name: Upload ZIP to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/PizzaOrder-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
